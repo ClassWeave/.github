@@ -20,20 +20,27 @@
 
 **ClassWeave** 是一套部署在真实课堂里的**多端协同系统**：
 
-- 教师在 **macOS** 上讲 PowerPoint，
-- 学生通过 **iOS / Android** 接收课件、回答互动、发送弹幕，
+- 教师在 **macOS** 上讲 PowerPoint、用**全屏白板**手写讲解，
+- 学生通过 **iOS / Android** 接收课件 / 白板 / 弹幕，并在自己屏上参与涂鸦与互动，
 - 老旧无网络的多媒体教室靠一台 **OrangePI 5B** 做 **USB ↔ 蓝牙** 中继，
 - 全程**不依赖外网、不依赖学校 Wi-Fi**，开机即用。
 
 ```
 [iOS A]  \
-[iOS B]   >── MultipeerConnectivity ──▶  [macOS Host]  ── USB-C / TCP ──▶  [Bridge]  ── BT RFCOMM ──▶  [Android A/B]
-[iOS C]  /                                  ▲
-                                            └─ 业务权威端：课件分发 / 白板状态 / 翻页监听 / 弹幕队列
+[iOS B]   ──▶ MultipeerConnectivity ──▶ ┐
+[iOS C]  /                              │
+                                        ├──▶ [macOS Host]  ◀── USB-C / TCP ──  [Bridge]  ◀── BT RFCOMM ──  [Android A/B]
+                                        │           │
+                                        │           ├─ 业务权威端：课件分发 / PowerPoint 翻页监听 / 弹幕队列
+                                        │           └─ 全屏白板：画笔 / 文本 / 便签 / 形状 / 橡皮
+                                        ▼
+                              （所有学生端事件 → Host 汇聚；Host 再以 state.full / state.delta 反向广播）
 ```
 
 设计目标是**在最差网络条件下保证课堂可用**：所有跨端协议被统一抽象成一个
 `Envelope` JSON 信封，承载层（MPC / USB-TCP / Bluetooth RFCOMM）任意可替换。
+Host 是协议中**唯一的业务权威**，所有学生端事件最终汇聚到 Host，由 Host
+再以 `state.full / state.delta` 反向广播下行。
 
 ## 仓库一览
 
